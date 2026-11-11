@@ -1,0 +1,17 @@
+# Deployed by Portainer as a Git stack. Portainer clones the repository and
+# builds the image from the Dockerfile; pull_policy: build forces a rebuild on
+# every redeploy so the running app always matches the selected Git reference.
+services:
+  app:
+    build:
+      context: .
+    image: breadcrumb-mermaid:latest
+    pull_policy: build
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-8080}:8080"
+    volumes:
+      - diagrams:/data
+
+volumes:
+  diagrams:

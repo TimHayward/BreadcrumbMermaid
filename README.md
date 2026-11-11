@@ -28,20 +28,19 @@ Use PNG rather than SVG for PowerPoint: Office does not reliably draw Mermaid's 
 
 ## Build and deploy
 
-On the Docker host:
+The app is deployed as a Portainer Git stack using `docker-compose.yml`. Portainer clones the repository, builds the image from the `Dockerfile` and starts it. Diagrams are kept in the `diagrams` named volume (shown in Portainer as `<stack name>_diagrams`), so they survive redeploys.
 
-```sh
-git clone git@github-visimer:TimHayward/BreadcrumbMermaid.git   # first time only
-cd BreadcrumbMermaid
-git pull
-docker build -t visimer-app:$(node -p "require('./package.json').version" 2>/dev/null || echo latest) .
-```
+| Portainer setting | Value |
+|---|---|
+| Repository reference | `refs/heads/main` |
+| Compose path | `docker-compose.yml` |
+| Environment variables | Optional `HOST_PORT` (default `8080`) |
 
-If Node is not installed on the host, give the tag explicitly, for example `docker build -t visimer-app:1.1.0 .`
+The app listens on all host interfaces on `HOST_PORT`. Check it at `http://<host>:<port>/health`.
 
-Then in Portainer, edit the `visimer` stack, change the `image:` tag to the new version and select **Update the stack**. Keep the previous image on the host as the rollback: because the stack uses `pull_policy: never`, reverting the tag is enough.
+To release: change `version` in `package.json` (also shown in the page header), commit to `main`, tag the commit `v<version>`, then select **Pull and redeploy** on the stack. Each redeploy rebuilds the image because of `pull_policy: build`.
 
-Versioning: change `version` in `package.json`, which also updates the version shown in the page header, and tag the commit `v<version>`.
+To roll back: revert the commit on `main` (or point the stack's reference at an earlier tag, for example `refs/tags/v1.0.0`) and redeploy. Do not delete the `diagrams` volume when removing or recreating the stack.
 
 ## Local development
 
