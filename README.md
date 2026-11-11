@@ -34,7 +34,7 @@ The app is deployed as a Portainer Git stack using `docker-compose.yml`. Portain
 |---|---|
 | Repository reference | `refs/heads/main` |
 | Compose path | `docker-compose.yml` |
-| Environment variables | Optional `HOST_PORT` (default `8080`) |
+| Environment variables | Optional `HOST_PORT` (default `8082`) |
 
 The app listens on all host interfaces on `HOST_PORT`. Check it at `http://<host>:<port>/health`.
 
