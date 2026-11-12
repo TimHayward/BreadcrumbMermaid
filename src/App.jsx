@@ -4,12 +4,10 @@ import { MermaidWysiwyg } from '@visimer/react';
 import { listDiagrams, openDiagram, saveDiagram } from './api.js';
 import { MERMAID_CONFIG } from './mermaidConfig.js';
 import { PNG_PRESETS, renderExportSvg, svgToPng } from './exportImage.js';
+import { BLANK, TEMPLATES } from './templates.js';
+import Menu from './Menu.jsx';
 
-const STARTER = `flowchart TD
-  A[Start] --> B{Ready?}
-  B -->|Yes| C[Finish]
-  B -->|No| A
-`;
+const STARTER = TEMPLATES[0].code;
 
 const MAX_IMPORT_BYTES = 1_000_000;
 
@@ -37,7 +35,6 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState(null); // 'svg' | 'png' | null
   const [download, setDownload] = useState(null);
-  const [pngPreset, setPngPreset] = useState('powerpoint');
   const exportLock = useRef(false);
   const fileInput = useRef(null);
 
@@ -69,14 +66,14 @@ export default function App() {
   const confirmDiscard = () =>
     !dirty || window.confirm('Discard unsaved changes? Export first if you want to keep them.');
 
-  function newDiagram() {
+  function newDiagram(template) {
     if (!confirmDiscard()) return;
-    setCode(STARTER);
+    setCode(template ? template.code : BLANK);
     setName('Untitled');
     setSavedFile(null);
     setRevision(null);
     setSavedCode(null);
-    setStatus('New diagram.');
+    setStatus(template ? `New ${template.label.toLowerCase()} from template.` : 'New blank diagram.');
   }
 
   async function open(file) {
@@ -131,8 +128,12 @@ export default function App() {
     setStatus('Imported. Save to keep on server.');
   }
 
-  async function exportImage(kind) {
+  async function exportImage(kind, presetKey) {
     if (exportLock.current) return;
+    if (!code.trim()) {
+      setStatus('Nothing to export yet.');
+      return;
+    }
     exportLock.current = true;
     setExporting(kind);
     setDownload(null);
@@ -145,7 +146,7 @@ export default function App() {
       if (kind === 'svg') {
         blob = new Blob([rendered.svg], { type: 'image/svg+xml;charset=utf-8' });
       } else {
-        const result = await svgToPng(rendered, PNG_PRESETS[pngPreset]);
+        const result = await svgToPng(rendered, PNG_PRESETS[presetKey]);
         blob = result.blob;
         if (result.reducedScale) {
           note = ` The diagram is very large, so it was exported at ${result.reducedScale.toFixed(1)}x.`;
@@ -173,7 +174,16 @@ export default function App() {
       </header>
       <div className="workspace">
         <aside>
-          <button disabled={busy} onClick={newDiagram}>+ New diagram</button>
+          <Menu
+            className="new-menu"
+            label="+ New diagram"
+            disabled={busy}
+            items={[
+              { label: 'Start from blank', onSelect: () => newDiagram(null) },
+              { separator: true },
+              ...TEMPLATES.map((template) => ({ label: template.label, onSelect: () => newDiagram(template) }))
+            ]}
+          />
           <h2>Saved diagrams</h2>
           {files.length === 0 && <p>No saved diagrams yet.</p>}
           {files.map((file) => (
@@ -187,20 +197,22 @@ export default function App() {
             <input aria-label="Diagram name" value={name} disabled={busy} onChange={(e) => setName(e.target.value)} />
             <button disabled={busy} onClick={save}>Save{dirty ? ' *' : ''}</button>
             <button disabled={busy} onClick={() => fileInput.current.click()}>Import .mmd</button>
-            <button onClick={() => downloadText(code, `${baseName}.mmd`, 'text/plain;charset=utf-8')}>Export .mmd</button>
-            <button disabled={busy || exporting !== null} onClick={() => exportImage('svg')}>
-              {exporting === 'svg' ? 'Exporting SVG…' : 'Export SVG'}
-            </button>
-            <span className="png-export">
-              <select aria-label="PNG preset" value={pngPreset} onChange={(e) => setPngPreset(e.target.value)}>
-                {Object.entries(PNG_PRESETS).map(([key, preset]) => (
-                  <option key={key} value={key}>{preset.label}</option>
-                ))}
-              </select>
-              <button disabled={busy || exporting !== null} onClick={() => exportImage('png')}>
-                {exporting === 'png' ? 'Exporting PNG…' : 'Export PNG'}
-              </button>
-            </span>
+            <Menu
+              label={exporting ? `Exporting ${exporting.toUpperCase()}…` : 'Export'}
+              disabled={busy || exporting !== null}
+              align="right"
+              items={[
+                { label: 'Export .mmd', onSelect: () => downloadText(code, `${baseName}.mmd`, 'text/plain;charset=utf-8') },
+                { label: 'Export SVG', onSelect: () => exportImage('svg') },
+                {
+                  label: 'Export PNG',
+                  items: Object.entries(PNG_PRESETS).map(([key, preset]) => ({
+                    label: preset.label,
+                    onSelect: () => exportImage('png', key)
+                  }))
+                }
+              ]}
+            />
             <input ref={fileInput} type="file" accept=".mmd,.txt" hidden onChange={importFile} />
           </div>
           <p role="status" className="status">{status}</p>
@@ -218,7 +230,13 @@ export default function App() {
               <textarea spellCheck="false" value={code} disabled={busy} onChange={(e) => setCode(e.target.value)} />
             </label>
             <div className="preview">
-              <MermaidWysiwyg code={code} onCodeChange={setCode} mermaid={mermaid} mermaidConfig={MERMAID_CONFIG} panZoom />
+              {code.trim() ? (
+                <MermaidWysiwyg code={code} onCodeChange={setCode} mermaid={mermaid} mermaidConfig={MERMAID_CONFIG} panZoom />
+              ) : (
+                <p className="preview-empty">
+                  Type Mermaid source on the left, or choose a template from + New diagram.
+                </p>
+              )}
             </div>
           </div>
           <footer>

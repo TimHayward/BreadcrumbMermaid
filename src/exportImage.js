@@ -48,6 +48,9 @@ function visibleBounds(svg) {
 
   svg.querySelectorAll('rect,path,circle,ellipse,polygon,polyline,line,text,foreignObject,image').forEach((el) => {
     if (el.closest('defs,marker,clipPath,mask')) return;
+    // Gantt's "today" line can sit far outside the chart when the tasks are in
+    // the past or future; cropping to it would leave a huge empty strip.
+    if (el.closest('.today')) return;
     const style = getComputedStyle(el);
     if (style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity) === 0) return;
     const tag = el.localName.toLowerCase();
