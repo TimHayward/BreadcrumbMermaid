@@ -16,6 +16,10 @@ The API is `GET /api/diagrams`, `GET /api/diagrams/{name}.mmd` and `PUT /api/dia
 
 **+ New diagram** offers **Start from blank** or a starter template for each diagram type the editor supports: flowchart, sequence, class, state, entity relationship, user journey, Gantt, pie, quadrant, requirement, Git graph, C4 context, mindmap, timeline, Sankey, XY chart, block, packet, Kanban, architecture, radar and treemap. Templates live in `src/templates.js`. ZenUML is not offered because it needs a Mermaid plugin the app does not load.
 
+## Moving quadrant chart points
+
+On a `quadrantChart`, hold **Ctrl** (**⌘** on Mac) and drag a point to move it. The point is kept inside the chart, its coordinates are shown in the status line while dragging, and on release the point's `[x, y]` in the source is updated to two decimal places. Anything else on the line, such as `:::class` or `radius:`, is kept. A drag without the modifier still pans the canvas as before. This is handled in `src/quadrantDrag.js`, because Visimer can relabel quadrant points but not move them.
+
 ## Exports
 
 All exports are under the **Export** menu: **Export .mmd**, **Export SVG** and **Export PNG**, which opens a submenu of the presets below. SVG and PNG are produced in the browser. The diagram is re-rendered off-screen with Mermaid, so the files never contain the editor's selection highlights, click targets or zoom, and the result is cropped to the drawn content with a 16 px margin. A Gantt chart's "today" line is ignored when cropping, so charts dated in the past or future are not padded out to today.

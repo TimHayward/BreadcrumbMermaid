@@ -6,6 +6,7 @@ import { MERMAID_CONFIG } from './mermaidConfig.js';
 import { PNG_PRESETS, renderExportSvg, svgToPng } from './exportImage.js';
 import { BLANK, TEMPLATES } from './templates.js';
 import Menu from './Menu.jsx';
+import { useQuadrantDrag } from './quadrantDrag.js';
 
 const STARTER = TEMPLATES[0].code;
 
@@ -37,9 +38,12 @@ export default function App() {
   const [download, setDownload] = useState(null);
   const exportLock = useRef(false);
   const fileInput = useRef(null);
+  const previewRef = useRef(null);
 
   const baseName = name || 'diagram';
   const dirty = code !== savedCode || `${name}.mmd` !== savedFile;
+
+  const quadrant = useQuadrantDrag(previewRef, code, setCode, setStatus);
 
   const refreshList = () => listDiagrams().then(setFiles);
 
@@ -229,7 +233,7 @@ export default function App() {
               Mermaid source
               <textarea spellCheck="false" value={code} disabled={busy} onChange={(e) => setCode(e.target.value)} />
             </label>
-            <div className="preview">
+            <div className="preview" ref={previewRef}>
               {code.trim() ? (
                 <MermaidWysiwyg code={code} onCodeChange={setCode} mermaid={mermaid} mermaidConfig={MERMAID_CONFIG} panZoom />
               ) : (
@@ -241,6 +245,7 @@ export default function App() {
           </div>
           <footer>
             Zoom with +/− or Ctrl/⌘ + scroll; drag empty canvas to pan. Fit restores the overview. Double-click labels to edit.
+            {quadrant && ' Hold Ctrl (⌘ on Mac) and drag a point to move it.'}
           </footer>
         </main>
       </div>
